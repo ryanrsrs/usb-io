@@ -10,6 +10,7 @@
 
 #define I2C_PCT2075 0x48
 Adafruit_PCT2075 Temperature;
+bool Temperature_Valid;
 
 #define PIN_DOTSTAR_CLK 6
 #define PIN_DOTSTAR_DAT 8
@@ -43,7 +44,7 @@ void periphs_setup()
     pin_config(PIN_OUT4, OUTPUT, 0);
     pin_config(PIN_OUT5, OUTPUT, 0);
 
-    Temperature.begin(I2C_PCT2075);
+    Temperature_Valid = Temperature.begin(I2C_PCT2075);
     Dotstar.begin();
 }
 
@@ -76,8 +77,14 @@ void dotstar_set_color(uint32_t color)
     Dotstar.show();
 }
 
+bool temperature_valid()
+{
+    return Temperature_Valid;
+}
+
 float temperature_read()
 {
+    if (!Temperature_Valid) return -99.0f;
     return Temperature.getTemperature();
 }
 

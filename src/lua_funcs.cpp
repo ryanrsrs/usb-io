@@ -27,8 +27,14 @@ int luaf_dotstar_set_color(lua_State *L) {
 }
 
 int luaf_read_temperature(lua_State *L) {
-    float deg_c = temperature_read();
-    lua_pushnumber(L, deg_c);
+    if (!temperature_valid()) {
+        // return nil if temp sensor not present
+        lua_pushnil(L);
+    }
+    else {
+        float deg_c = temperature_read();
+        lua_pushnumber(L, deg_c);
+    }
     return 1;
 }
 

@@ -33,6 +33,8 @@ void periphs_reset();
 void dotstar_set_brightness(uint8_t br);
 void dotstar_set_color(uint32_t color);
 
+// True if PCT2075 I2C temp sensor exists.
+bool temperature_valid();
 
 // Read board temp sensor in deg C.
 float temperature_read();
