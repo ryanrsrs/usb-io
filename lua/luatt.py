@@ -175,7 +175,7 @@ elif stat.S_ISSOCK(mode):
 if Conn['is_socket']:
     # Downstream luatt.py processes don't proxy mqtt messages.
     paho_client = None
-else:
+elif paho_client is not None:
     # Only create when talking to serial device.
     paho_client = paho_client.Client()
 
