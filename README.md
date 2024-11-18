@@ -30,13 +30,13 @@ The system has two parts: a Linux host and a microcontroller device. Repurposed 
 ## Why Lua?
 
 * **Cooperative multithreading with Lua coroutines**  
-Under the hood, Lua uses setjmp/longjmp to transfer control between threads. This allows an easy, threaded programming style while safely reusing Arduino libraries. Because program control flow switches only at well-definied points, there is no need for synchronization in most threads.
+Under the hood, Lua uses setjmp/longjmp to transfer control between threads. This allows an easy, threaded programming style while safely reusing Arduino libraries. Because program control flow switches only at well-defined points, there is no need for synchronization in most threads.
 
 * **Lua REPL**  
 From the host, you can run a Lua REPL on the microcontroller. This is a little Lua shell running on the live system. The shell has a command history and line editing, and your commands are executed concurrently with whatever other Lua code is already running. Since it's cooperatively scheduled, you can call functions that interact with hardware, internal APIs, pull stats from the memory manager, etc. It's not a brittle debug view where you can look but not touch.
 
 * **Fast updates**  
-Updating the Lua code is extremely fast. You can wipe the Lua state, reset peripherals back to inital values, and load a new Lua application in ~100 ms. It feels instant. You do not need to reflash the microcontroller, or even reset it, when doing development in Lua. 
+Updating the Lua code is extremely fast. You can wipe the Lua state, reset peripherals back to inital values, and load a new Lua application in ~100 ms. It feels instant. You do not need to re-flash the microcontroller, or even reset it, when doing development in Lua. 
 
 * **Erlang-style live code updates**  
 It's possible to have two versions of a module running at the same time, including controlled handoff of state.  
