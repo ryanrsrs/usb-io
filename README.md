@@ -4,6 +4,23 @@ A USB-connected GPIO board running an experimental Lua framework for IoT.
 
 Built on top of FreeRTOS and Arduino, this project implements a cooperative multithreading scheduler based on Lua coroutines. This allows for a concurrent, threaded programming style while maintaining compatibility with non-reentrant Arduino libraries.
 
+## Project Structure
+```
+ .
+ ├── include
+ ├── lib
+ │   ├── lua        # Lua language
+ │   └── luatt      # Arduino/Lua glue
+ ├── lua
+ │   ├── lib        # Lua external dependencies
+ │   ├── src        # Lua source code
+ │   └── luatt.py   # Linux host-side driver program
+ ├── src
+ ├── README.md      # this file
+ ├── BUILDING.md    # build instructions
+ └── platformio.ini # project settings
+```
+
 ## System Architecture
 
 The microcontroller is permanently attached to a Linux host via USB. This design is intended for building automation, security, and other fixed infrastructure, not mobile battery-powered devices.
@@ -29,7 +46,7 @@ Future.
 Future.
 
 
-## [Luatt.py](https://github.com/ryanrsrs/usb-io/blob/main/lua/luatt.py)
+## Luatt.py
 Runs on the host and talks to the microcontroller. All communication with the micro flows through this script.
 
 * **Loading Lua code**  
