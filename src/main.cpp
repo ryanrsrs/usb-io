@@ -41,7 +41,7 @@ void setup() {
     // Wait 5 secs, for easy crash recovery.
     // If you connect at 1200 buad, it'll jump to the bootloader.
     digitalWrite(PIN_LED, 1);
-    delay(5000);
+    while (millis() < 5000) yield();
     digitalWrite(PIN_LED, 0);
 
     // Interrupt-driven lua routine
