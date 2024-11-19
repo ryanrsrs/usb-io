@@ -8,30 +8,9 @@
 
 #include "luatt_io.h"
 
-static struct {
-    char token[32];
-    char lua_buf[256];
-    int lua_buf_i;
-} State = { 0 };
-
-static void fp_flush_buffer() {
-    if (Serial) {
-        Serial.write(State.token);
-        Serial.write(State.lua_buf, State.lua_buf_i);
-    }
-    State.lua_buf_i = 0;
-}
-
+#if 0
 size_t fp_lua_fwrite(const void* buf, size_t size, size_t nitems, FILE* stream) {
-    const char* src = (const char*)buf;
-    int i, n = size * nitems;
-    for (i = 0; i < n; i++) {
-        char ch = src[i];
-        State.lua_buf[State.lua_buf_i++] = ch;
-        if (State.lua_buf_i == sizeof(State.lua_buf) || ch == '\n') {
-            fp_flush_buffer();
-        }
-    }
+    Serial.write((const uint8_t*)buf, size * nitems);
     return nitems;
 }
 
@@ -48,13 +27,11 @@ int fp_lua_fprintf(FILE* stream, const char* format, ...) {
 }
 
 int fp_lua_fflush(FILE* stream) {
-    if (State.lua_buf_i) fp_flush_buffer();
     return 0;
 }
+#endif
 
 void fp_set_token(const char* token) {
-    if (State.lua_buf_i) fp_flush_buffer();
-
-    if (token == 0) token = "0";
-    snprintf(State.token, sizeof(State.token), "%s|", token);
+    Serial.set_mux_token(token);
+    return;
 }
