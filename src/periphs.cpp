@@ -1,8 +1,6 @@
 #include <Arduino.h>
 #include <Adafruit_TinyUSB.h>
 
-#include <luatt_io.h>
-
 #include <periphs.h>
 
 #include <Adafruit_DotStar.h>
@@ -110,7 +108,7 @@ void set_output(int out_ix, bool value)
     const int outputs[] = { PIN_OUT0, PIN_OUT1, PIN_OUT2, PIN_OUT3, PIN_OUT4, PIN_OUT5 };
     const int n_outputs = sizeof(outputs) / sizeof(outputs[0]);
     if (out_ix < 0 || out_ix >= n_outputs) {
-        fp_lua_fprintf(0, "error|%s:%i,set_output(%i) bad index.\n", __FILE__, __LINE__, out_ix);
+        printf("error|%s:%i,set_output(%i) bad index.\n", __FILE__, __LINE__, out_ix);
         return;
     }
     digitalWrite(outputs[out_ix], value);

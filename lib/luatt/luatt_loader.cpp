@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include "Adafruit_TinyUSB.h"
 
-#include "luatt_io.h"
 #include "luatt_context.h"
 #include "luatt_loader.h"
 
@@ -34,7 +33,7 @@ int Luatt_Loader::Buffer_t::add(int ch) {
         return -1;
     }
     if (len >= max_size) {
-        fp_lua_fprintf(0, "error|%s:%i,input buffer overflow.\n", __FILE__, __LINE__);
+        printf("error|%s:%i,input buffer overflow.\n", __FILE__, __LINE__);
         overflow = true;
         return -1;
     }
@@ -45,14 +44,14 @@ int Luatt_Loader::Buffer_t::add(int ch) {
         }
         char* new_buf = (char*) realloc(buf, size);
         if (new_buf == 0) {
-            fp_lua_fprintf(0, "error|%s:%i,realloc(%i) failed.\n", __FILE__, __LINE__, size);
+            printf("error|%s:%i,realloc(%i) failed.\n", __FILE__, __LINE__, size);
             overflow = true;
             return -1;
         }
         buf = new_buf;
     }
     if (len == size) {
-        fp_lua_fprintf(0, "error|%s:%i,input buffer overflow2.\n", __FILE__, __LINE__);
+        printf("error|%s:%i,input buffer overflow2.\n", __FILE__, __LINE__);
         overflow = true;
         return -1;
     }
@@ -85,7 +84,7 @@ void Luatt_Loader::Run_Command() {
     if (Args_n < 2) return;
 
     const char* token = Buffer.buf + Args[0].off;
-    fp_set_token(token);
+    Serial.set_mux_token(token);
 
     const char* cmd = Buffer.buf + Args[1].off;
     if      (!strcmp(cmd, "reset")) Command_Reset();
@@ -94,21 +93,21 @@ void Luatt_Loader::Run_Command() {
     else if (!strcmp(cmd,   "msg")) Command_Msg();
     else {
         // unrecognized command
-        fp_lua_fprintf(0, "error|%s:%i,bad command,%s\n", __FILE__, __LINE__, cmd);
-        fp_lua_fprintf(0, "ret|fail\n");
+        printf("error|%s:%i,bad command,%s\n", __FILE__, __LINE__, cmd);
+        printf("ret|fail\n");
     }
 }
 
 void Luatt_Loader::Command_Reset() {
     Lua_Reset();
-    fp_lua_fprintf(0, "ret|ok\n");
+    printf("ret|ok\n");
     return;
 }
 
 void Luatt_Loader::Command_Eval() {
     if (Args_n != 3) {
-        fp_lua_fprintf(0, "error|%s:%i,eval requires 3 args, %i given.\n", __FILE__, __LINE__, Args_n);
-        fp_lua_fprintf(0, "ret|fail\n");
+        printf("error|%s:%i,eval requires 3 args, %i given.\n", __FILE__, __LINE__, Args_n);
+        printf("ret|fail\n");
         return;
     }
 
@@ -116,18 +115,18 @@ void Luatt_Loader::Command_Eval() {
     if (r != LUA_OK) {
         // lua error
         const char* err_str = lua_tostring(LUA, lua_gettop(LUA));
-        fp_lua_fprintf(0, "error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
+        printf("error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
         lua_pop(LUA, 1);
-        fp_lua_fprintf(0, "ret|fail\n");
+        printf("ret|fail\n");
         return;
     }
 
     r = lua_pcall(LUA, 0, LUA_MULTRET, 0);
     if (r != LUA_OK) {
         const char* err_str = lua_tostring(LUA, lua_gettop(LUA));
-        fp_lua_fprintf(0, "error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
+        printf("error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
         lua_pop(LUA, 1);
-        fp_lua_fprintf(0, "ret|fail\n");
+        printf("ret|fail\n");
         return;
     }
 
@@ -150,31 +149,31 @@ void Luatt_Loader::Command_Eval() {
         }
     }
 
-    fp_lua_fprintf(0, "ret|ok\n");
+    printf("ret|ok\n");
 }
 
 void Luatt_Loader::Command_Load() {
     if (Args_n != 4) {
-        fp_lua_fprintf(0, "error|%s:%i,load requires 4 args, %i given.\n", __FILE__, __LINE__, Args_n);
-        fp_lua_fprintf(0, "ret|fail\n");
+        printf("error|%s:%i,load requires 4 args, %i given.\n", __FILE__, __LINE__, Args_n);
+        printf("ret|fail\n");
         return;
     }
 
     int r = luaL_loadbufferx(LUA, Buffer.buf + Args[3].off, Args[3].len, Buffer.buf + Args[2].off, "t");
     if (r != LUA_OK) {
         const char* err_str = lua_tostring(LUA, lua_gettop(LUA));
-        fp_lua_fprintf(0, "error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
+        printf("error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
         lua_pop(LUA, 1);
-        fp_lua_fprintf(0, "ret|fail\n");
+        printf("ret|fail\n");
         return;
     }
 
     r = lua_pcall(LUA, 0, 1, 0);
     if (r != LUA_OK) {
         const char* err_str = lua_tostring(LUA, lua_gettop(LUA));
-        fp_lua_fprintf(0, "error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
+        printf("error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
         lua_pop(LUA, 1);
-        fp_lua_fprintf(0, "ret|fail\n");
+        printf("ret|fail\n");
         return;
     }
 
@@ -187,13 +186,13 @@ void Luatt_Loader::Command_Load() {
         lua_setglobal(LUA, Buffer.buf + Args[2].off);
     }
 
-    fp_lua_fprintf(0, "ret|ok\n");
+    printf("ret|ok\n");
 }
 
 void Luatt_Loader::Command_Msg() {
     if (Args_n != 4) {
-        fp_lua_fprintf(0, "error|%s:%i,msg requires 4 args, %i given.\n", __FILE__, __LINE__, Args_n);
-        fp_lua_fprintf(0, "ret|fail\n");
+        printf("error|%s:%i,msg requires 4 args, %i given.\n", __FILE__, __LINE__, Args_n);
+        printf("ret|fail\n");
         return;
     }
 
@@ -215,7 +214,7 @@ void Luatt_Loader::Command_Msg() {
     r = lua_pcall(LUA, 2, 1, 0);
     if (r != LUA_OK) {
         const char* err_str = lua_tostring(LUA, lua_gettop(LUA));
-        fp_lua_fprintf(0, "error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
+        printf("error|%s:%i,%i,%s\n", __FILE__, __LINE__, r, err_str);
     }
 
 Exit:
@@ -231,7 +230,7 @@ int Luatt_Loader::Parse_Line()
     int i = 0;
     while (p < Buffer.len) {
         if (i >= LUATT_MAX_ARGS) {
-            fp_lua_fprintf(0, "error|%s:%i,too many args, limit %i.\n", __FILE__, __LINE__, LUATT_MAX_ARGS);
+            printf("error|%s:%i,too many args, limit %i.\n", __FILE__, __LINE__, LUATT_MAX_ARGS);
             return -1;
         }
         char* s = Buffer.buf + p;
@@ -253,7 +252,7 @@ int Luatt_Loader::Parse_Line()
             char* end = s + 1;
             unsigned long bytes = strtoul(end, &end, 10);
             if (*end || bytes >= Buffer.max_size) {
-                fp_lua_fprintf(0, "error|%s:%i,invalid raw byte count '%s'\n", __FILE__, __LINE__, s);
+                printf("error|%s:%i,invalid raw byte count '%s'\n", __FILE__, __LINE__, s);
                 return -1;
             }
             Raw[Raw_n].arg_i = i;
@@ -302,7 +301,7 @@ void Luatt_Loader::Feed_Char(int ch)
         Raw_read++;
         if (Raw_read == r.bytes + 1) {
             if (ch != '\n') {
-                fp_lua_fprintf(0, "error|%s:%i,expected newline after raw block.\n", __FILE__, __LINE__);
+                printf("error|%s:%i,expected newline after raw block.\n", __FILE__, __LINE__);
                 Buffer.overflow = true;
                 return;
             }
@@ -331,7 +330,7 @@ int Luatt_Loader::Loop()
             //digitalWrite(3, 1);
             connected = true;
             Reset_Input();
-            fp_lua_fprintf(0, "version|luatt,0.0.1\n");
+            printf("version|luatt,0.0.1\n");
             ms = 0;
         }
     }

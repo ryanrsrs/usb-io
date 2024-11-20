@@ -85,10 +85,12 @@ except ImportError:
 Subscriptions = set()
 
 QS = {}
-#MsgQ = queue.Queue(20)
 ReplQ = queue.Queue(20)
 
 Downstreams = {}
+
+LogFile = None
+LogColor = False
 
 Quit = False
 Force_Update = False
@@ -106,24 +108,29 @@ else:
     lib = ctypes.cdll.LoadLibrary('libreadline.so.' + version)
 readline.forced_update = lib.rl_forced_update_display
 
-
 # Use multi-colored output for the debugging output.
 # TODO: add options to control debug output and logging
 def print_line(msg, label='', color=''):
     start = ''
     end = ''
-    if color:
+    if LogColor and color:
         start = f'\033[{color}m'
         end = f'\033[0m'
-    sys.stdout.write(f"\033[2K\r{start}{label}{msg}{end}\n")
-    if Force_Update: readline.forced_update()
+    if Enable_REPL and LogFile == sys.stdout:
+        sys.stdout.write(f"\033[2K\r{start}{label}{msg}{end}\n")
+        if Force_Update: readline.forced_update()
+    else:
+        #LogFile.write(f"{label}{msg}\n")
+        LogFile.write(f"{start}{label}{msg}{end}\n")
 
 def printer_serial(msg, label='', color=''):
+    if not LogFile: return
     if not label: label = "ser>  "
     if not color: color = 32
     print_line(msg, label, color)
 
 def printer_sock(msg, label='', color=''):
+    if not LogFile: return
     if not label: label = "sock> "
     if not color: color = 33
     print_line(msg, label, color)
@@ -250,13 +257,15 @@ def write_command(fd, token, *args):
 
     # TODO: add real logging here
     line = line.decode('utf-8')
-    if Conn['fd'] == fd:
-        if Conn['is_socket']:
-            print_line(line, "sock< ", 36)
+    if LogFile:
+        if Conn['fd'] == fd:
+            if Conn['is_socket']:
+                label, color = "sock< ", 36
+            else:
+                label, color = "ser<  ", 35
         else:
-            print_line(line, "ser<  ", 35)
-    else:
-        print_line(line, ">sock ", 94)
+            label, color = ">sock ", 94
+        print_line(line, label, color)
 
     # atomic write
     os.write(fd, out)
@@ -272,7 +281,6 @@ def write_command(fd, token, *args):
 # Pass next_partial on the next call to read_packet_line or
 # read_packet_bytes.
 def read_packet_line(fd, partial):
-    global Quit
     if '\n' in partial:
         # we can satisfy request entirely from buffered input
         return partial.split('\n', 1)
@@ -286,6 +294,7 @@ def read_packet_line(fd, partial):
             buf = bd.decode('utf-8')
         except UnicodeDecodeError:
             print('\r\n\n----------\r\n')
+            print('Error: utf-8 decode failed.')
             print(len(bd))
             print(repr(bd))
             print('----------\r\n\r\n')
@@ -300,7 +309,6 @@ def read_packet_line(fd, partial):
 
 # Read a fixed number of bytes from a file descriptor, followed by newline.
 def read_packet_bytes(fd, n, partial):
-    global Quit
     if len(partial) >= n + 1:
         # skip newline
         return (partial[:n], partial[n+1:])
@@ -358,6 +366,7 @@ def process_serial_packet(packet):
     packet = tuple(packet)
     if len(packet) < 2:
         # mostly log text output
+        print_line(repl(packet), "pckt> ", 103)
         return
     token = packet[0]
     cmd = packet[1]
@@ -388,7 +397,6 @@ def process_serial_packet(packet):
 
 # Read one packet from file descriptor.
 def read_packet(fd, partial, printer):
-    global Quit, Force_Update
     try:
         v = read_packet_line(fd, partial)
         if v is None: return
@@ -416,7 +424,6 @@ def read_packet(fd, partial, printer):
 
 # Thread to read packets from the serial port or unix socket.
 def read_serial():
-    global Quit, Force_Update
     partial = ''
     while not Quit:
         v = read_packet(Conn['fd'], partial, printer_serial)
@@ -452,6 +459,17 @@ def wait_for_version(q):
 if not Conn['is_socket']:
     QS['sched'] = ReplQ
 
+    # only log the primary luatt.py
+    log_name = f"/tmp/luatt.{os.getpid()}.log"
+    # use line buffering
+    LogFile = open(log_name, 'w', buffering=1)
+
+if LogFile:
+    LogColor = LogFile.isatty()
+else:
+    LogColor = sys.stdout.isatty()
+Enable_REPL = sys.stdout.isatty()
+
 th_serial = threading.Thread(target=read_serial, daemon=True)
 th_serial.start()
 
@@ -477,7 +495,6 @@ def on_message(client, userdata, msg):
 # Each downstream connected luatt.py gets a new thread to babysit it.
 class SocketHandler(socketserver.BaseRequestHandler):
     def handle(self):
-        global Quit, Force_Update
         last_token = None
         partial = ''
         while not Quit:
@@ -495,7 +512,6 @@ class SocketHandler(socketserver.BaseRequestHandler):
             write_command(Conn['fd'], *packet)
         if last_token:
             del Downstreams[last_token]
-
 
 if not Conn['is_socket']:
     # Create unix socket for downstream luatt.py processes to connect to.
@@ -638,7 +654,7 @@ def parse_line(line):
     elif args[0] == '!reload':
         pass
     else:
-        print('Bad command')
+        print('Error: Bad command')
     return True
 
 for arg in sys.argv[2:]:
@@ -681,12 +697,16 @@ for arg in sys.argv[2:]:
         print(f"Error: bad command line arg {repr(arg)}")
 
 try:
-    while True:
-        Force_Update = True
-        s = input("lua> ")
-        Force_Update = False
-        if s and not parse_line(s):
-            break
+    if Enable_REPL:
+        while True:
+            Force_Update = True
+            s = input("lua> ")
+            Force_Update = False
+            if s and not parse_line(s):
+                break
+    else:
+        while True:
+            time.sleep(1)
 except (EOFError, KeyboardInterrupt):
     print()
     pass
@@ -702,3 +722,5 @@ finally:
     else:
         os.close(Conn['fd'])
     th_serial.join()
+    if LogFile:
+        LogFile.close()
