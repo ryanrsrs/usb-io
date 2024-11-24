@@ -6,22 +6,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "luatt_context.h"
-#include "luatt_loader.h"
+#include "luatt.h"
 
 #include "periphs.h"
-#include "lua_funcs.h"
-
 #include "util.h"
 
 Luatt_Loader Loader;
 
-void Reset_Peripherals() {
+static void Setup_Lua(struct lua_State* L) {
     periphs_reset();
-}
-
-void Lua_Setup_Funcs() {
-    lua_setup_funcs(LUA);
+    luatt_setup_funcs(L);
+    setup_lua_periphs(L);
 }
 
 static TaskHandle_t Main_Task = 0;
@@ -48,6 +43,8 @@ void setup() {
     Main_Task = xTaskGetCurrentTaskHandle();
     keyfob_attach_interrupt(on_keyfob_int);
     xTaskNotifyStateClear(0);
+
+    Lua_Begin(Setup_Lua);
 
     // Initialize Lua state.
     Lua_Reset();

@@ -119,7 +119,7 @@ def print_line(msg, label='', color=''):
     if Enable_REPL and LogFile == sys.stdout:
         sys.stdout.write(f"\033[2K\r{start}{label}{msg}{end}\n")
         if Force_Update: readline.forced_update()
-    else:
+    elif LogFile:
         #LogFile.write(f"{label}{msg}\n")
         LogFile.write(f"{start}{label}{msg}{end}\n")
 
@@ -241,7 +241,7 @@ def escape_arg(s):
 # Asynchronous output from background Lua threads is sent with the
 # token "sched".
 def new_token():
-    return secrets.token_hex(8)
+    return f"{os.getppid()}/{os.getpid()}/{secrets.token_hex(12)}"
 
 # Encodes a command and sends it upstream, either to the microcontroller,
 # of an upstream luatt.py process.
@@ -371,27 +371,34 @@ def process_serial_packet(packet):
     token = packet[0]
     cmd = packet[1]
 
-    # check if token is ours
-    q = QS.get(token)
-    if q is not None:
-        q.put(packet)
+    # MQTT commands
+    if paho_client and cmd == 'pub':
+        dev_cmd_pub(packet)
+        return
+    elif paho_client and cmd == 'sub':
+        dev_cmd_sub(packet)
+        return
+    elif paho_client and cmd == 'unsub':
+        dev_cmd_unsub(packet)
+        return
+    else:
+        # check if token is ours
+        q = QS.get(token)
+        if q is not None:
+            q.put(packet)
+        elif token.split('/')[0] == str(os.getppid()):
+            body = '|'.join(packet[1:])
+            if Enable_REPL:
+                sys.stdout.write(f"\033[2K\r{body}\n")
+                if Force_Update: readline.forced_update()
+            else:
+                sys.stdout.write(body + "\n")
 
     # check if token came from a downstream luatt.py
     ds = Downstreams.get(token)
     if ds:
         write_command(ds, *packet)
 
-    # MQTT commands
-    if paho_client:
-        if cmd == 'pub':
-            dev_cmd_pub(packet)
-            return
-        elif cmd == 'sub':
-            dev_cmd_sub(packet)
-            return
-        elif cmd == 'unsub':
-            dev_cmd_unsub(packet)
-            return
     #sys.stdout.write(f"Error: unrecognized dev cmd {repr(cmd)}\n")
     return
 
@@ -457,12 +464,11 @@ def wait_for_version(q):
     return None
 
 if not Conn['is_socket']:
-    QS['sched'] = ReplQ
-
-    # only log the primary luatt.py
-    log_name = f"/tmp/luatt.{os.getpid()}.log"
-    # use line buffering
-    LogFile = open(log_name, 'w', buffering=1)
+    if 0:
+        # only log the primary luatt.py
+        log_name = f"/tmp/luatt.{os.getpid()}.log"
+        # use line buffering
+        LogFile = open(log_name, 'w', buffering=1)
 
 if LogFile:
     LogColor = LogFile.isatty()
@@ -471,11 +477,15 @@ else:
 Enable_REPL = sys.stdout.isatty()
 
 th_serial = threading.Thread(target=read_serial, daemon=True)
-th_serial.start()
 
 if not Conn['is_socket']:
+    QS['sched'] = ReplQ
+    th_serial.start()
     wait_for_version(ReplQ)
     del QS['sched']
+else:
+    th_serial.start()
+    write_command(Conn['fd'], "noret", "reconnect", str(os.getppid()))
 
 
 # The callback for when the client receives a CONNACK response from the server.

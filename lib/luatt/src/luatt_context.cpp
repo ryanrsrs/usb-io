@@ -5,6 +5,12 @@
 
 struct lua_State* LUA = 0;
 
+static luatt_setup_callback State_setup_cb;
+
+void Lua_Begin(luatt_setup_callback setup_cb) {
+    State_setup_cb = setup_cb;
+}
+
 void Lua_Reset() {
     if (LUA) {
         lua_close(LUA);
@@ -12,8 +18,7 @@ void Lua_Reset() {
 
     LUA = luaL_newstate();
     luaL_openlibs(LUA);
-    Reset_Peripherals();
-    Lua_Setup_Funcs();
+    if (State_setup_cb) State_setup_cb(LUA);
 }
 
 int Lua_Loop(uint32_t interrupt_flags) {

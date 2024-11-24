@@ -9,11 +9,10 @@ extern "C" {
 
 extern struct lua_State* LUA;
 
+typedef void (*luatt_setup_callback)(struct lua_State*);
+void Lua_Begin(luatt_setup_callback setup_cb);
+
 void Lua_Reset();
 int Lua_Loop(uint32_t interrupt_flags);
-
-// in main.cpp
-void Reset_Peripherals();
-void Lua_Setup_Funcs();
 
 #endif

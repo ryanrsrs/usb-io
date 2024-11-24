@@ -10,6 +10,7 @@ scheduler.pq = PriorityQueue{
 }
 
 scheduler.interrupts = {}
+scheduler.tokens = {}
 
 -- Called by the main Arduino loop.
 -- The C code looks up "scheduler.loop" in the Lua global scope and calls it.
@@ -44,7 +45,10 @@ function scheduler.loop (ints)
         scheduler.interrupts[co] = nil
 
         -- Run thread coroutine.
+        set_mux_token(scheduler.tokens[co])
         local r, t_inc, co_ints = coroutine.resume(co, ms)
+        set_mux_token("sched")
+
         if r and t_inc then
             -- coroutine wants to sleep
             scheduler.pq:enqueue(co, time.millis() + math.floor(t_inc))
@@ -54,6 +58,7 @@ function scheduler.loop (ints)
             end
         else
             -- coroutine has exited
+            scheduler.tokens[co] = nil
             coroutine.close(co)
         end
     end
@@ -64,6 +69,7 @@ end
 
 -- Start a new thread after t_inc milliseconds.
 function scheduler.start (co, t_inc)
+    scheduler.tokens[co] = get_mux_token()
     scheduler.pq:enqueue(co, time.millis() + math.floor(t_inc or 0))
 end
 

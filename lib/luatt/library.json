@@ -1,0 +1,26 @@
+{
+  "name": "Luatt",
+  "version": "0.0.2",
+  "description": "Lua Telemetry Transport.",
+  "keywords": "lua",
+  "authors":
+  [
+    {
+        "name": "Ryan Salsbury",
+        "email": "ryanrs@gmail.com",
+        "url": "https://github.com/ryanrsrs",
+        "maintainer": true
+    }
+  ],
+  "homepage": "https://github.com/ryanrsrs/luatt",
+  "dependencies": {
+  },
+  "frameworks": "*",
+  "platforms": "*",
+  "build": {
+    "srcDir": "src",
+    "srcFilter": [
+      "+<*.cpp>"
+    ]
+  }
+}

@@ -1,10 +1,11 @@
 #include <Arduino.h>
 #include <Adafruit_TinyUSB.h>
-
-#include <periphs.h>
-
 #include <Adafruit_DotStar.h>
 #include <Adafruit_PCT2075.h>
+
+#include <luatt.h>
+
+#include <periphs.h>
 
 #define I2C_PCT2075 0x48
 Adafruit_PCT2075 Temperature;
@@ -122,4 +123,43 @@ void set_outputs(uint8_t values)
     digitalWrite(PIN_OUT3, (values & 0x08) > 0);
     digitalWrite(PIN_OUT4, (values & 0x10) > 0);
     digitalWrite(PIN_OUT5, (values & 0x20) > 0);
+}
+
+static int lf_read_temperature(lua_State *L) {
+    if (!temperature_valid()) {
+        // return nil if temp sensor not present
+        lua_pushnil(L);
+    }
+    else {
+        float deg_c = temperature_read();
+        lua_pushnumber(L, deg_c);
+    }
+    return 1;
+}
+
+static int lf_read_keyfob(lua_State *L) {
+    lua_pushinteger(L, keyfob_read());
+    return 1;
+}
+
+static int lf_set_output(lua_State *L) {
+    uint32_t out_ix = luaL_checkinteger(L, 1);
+    uint32_t value = luaL_checkinteger(L, 2);
+    set_output(out_ix, value);
+    return 0;
+}
+
+void setup_lua_periphs(lua_State* L)
+{
+    luatt_setup_funcs_dotstar(L, &Dotstar);
+    luatt_setup_funcs_red_led(L, PIN_LED);
+
+    lua_pushcfunction(L, lf_read_temperature);
+    lua_setglobal(L, "read_temperature");
+
+    lua_pushcfunction(L, lf_read_keyfob);
+    lua_setglobal(L, "read_keyfob");
+
+    lua_pushcfunction(L, lf_set_output);
+    lua_setglobal(L, "set_output");
 }

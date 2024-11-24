@@ -53,4 +53,7 @@ void set_output(int out_ix, bool value);
 // Set all 6 outputs at once.
 void set_outputs(uint8_t values);
 
+struct lua_State;
+void setup_lua_periphs(lua_State* L);
+
 #endif

@@ -1,8 +1,8 @@
 [submodule "lua/lib/lpriorityqueue"]
-	path = lua/lib/lpriorityqueue
+	path = lib/luatt/lua/lib/lpriorityqueue
 	url = https://github.com/ryanrsrs/lpriorityqueue
 [submodule "lua/lib/json.lua"]
-	path = lua/lib/json.lua
+	path = lib/luatt/lua/lib/json.lua
 	url = https://github.com/ryanrsrs/json.lua
 [submodule "lib/lua"]
 	path = lib/lua
