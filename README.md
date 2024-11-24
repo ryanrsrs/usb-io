@@ -10,12 +10,15 @@ Built on top of FreeRTOS and Arduino, this project implements a cooperative mult
  ├── include
  ├── lib
  │   ├── lua        # Lua language
- │   └── luatt      # Arduino/Lua glue
- ├── lua
- │   ├── lib        # Lua external dependencies
- │   ├── src        # Lua source code
- │   └── luatt.py   # Linux host-side driver program
- ├── src
+ │   └── luatt      # Luatt library
+ │       ├── luatt.py   # Linux host-side driver program
+ │       ├── lua
+ │       │   ├── lib    # Lua external dependencies
+ │       │   └── src    # Lua source code, baseline modules
+ │       └── src        # C++ Arduino/Lua glue
+ │
+ ├── lua            # Project-specific lua sources
+ ├── src            # C++ project sources
  ├── README.md      # this file
  ├── BUILDING.md    # build instructions
  └── platformio.ini # project settings
