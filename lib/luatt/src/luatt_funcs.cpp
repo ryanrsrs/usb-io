@@ -27,6 +27,8 @@ static int lf_time_micros(lua_State *L) {
     return 1;
 }
 
+// A 'rollover' is when millis() 0x7fffffff -> 0x80000000
+// i.e. it's the signed int overflow, not the unsigned overflow.
 static int lf_time_rollovers(lua_State *L) {
     lua_pushinteger(L, State_rollovers);
     return 1;
